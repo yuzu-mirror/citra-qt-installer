@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Installer>
+    <Name>Citra</Name>
+    <Version>1.0.0</Version>
+    <Title>Citra Updater</Title>
+    <Publisher>Citra team</Publisher>
+    <StartMenuDir>Citra</StartMenuDir>
+    <TargetDir>@HomeDir@/Citra</TargetDir>
+    <RunProgram>@TargetDir@/nightly/citra-qt.exe</RunProgram>
+    <InstallerApplicationIcon>icon</InstallerApplicationIcon>
+    <InstallerWindowIcon>icon.png</InstallerWindowIcon>
+    <RunProgramDescription>Start Citra</RunProgramDescription>
+    <!-- TODO: Move to packages 
+    <ControlScript>installscript.qs</ControlScript>-->
+    <RemoteRepositories>
+     <Repository>
+             <Url>https://citra.jselby.net/repository</Url>
+             <Enabled>1</Enabled>
+             <DisplayName>Selby's Testing Repo</DisplayName>
+     </Repository>
+</RemoteRepositories>
+</Installer>
