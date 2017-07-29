@@ -14,9 +14,14 @@
     <ControlScript>installscript.qs</ControlScript>-->
     <RemoteRepositories>
      <Repository>
+             <Url>https://citra-emu.org/repository</Url>
+             <Enabled>1</Enabled>
+             <DisplayName>Official Citra Repository</DisplayName>
+     </Repository>
+     <!--<Repository>
              <Url>https://citra.jselby.net/repository</Url>
              <Enabled>1</Enabled>
              <DisplayName>Selby's Testing Repo</DisplayName>
-     </Repository>
+     </Repository>-->
 </RemoteRepositories>
 </Installer>
