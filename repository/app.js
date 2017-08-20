@@ -7,7 +7,7 @@ const zip_bin = require('7zip-bin').path7za;
 
 const logger = require('winston');
 logger.exitOnError = false;
-logger.add(logger.transports.File, { filename: './qt-installer-repository.log' });
+logger.add(logger.transports.File, { filename: '/var/log/citra-qt-installer/citra-qt-installer-repository.log' });
 
 const distDir = "./dist";
 
@@ -46,9 +46,6 @@ function getTopResultFor(jsonData, platform) {
     return {"notFound": true};
 }
 
-fs.removeSync(distDir);
-mkdirIfNotExists(distDir);
-
 // The Qt Installer Framework is a pain to build or download.
 // Because all we need are a few 7-zipped + xml files, we might as well generate them for ourselves.
 let targets = [
@@ -79,6 +76,8 @@ let targets = [
 ];
 
 async function execute() {
+    mkdirIfNotExists(distDir);
+
     // Get Git information
     logger.debug("Getting release info...");
     for (result_key in targets) {
@@ -87,10 +86,15 @@ async function execute() {
     }
 
     logger.debug("Building metadata...");
+
+    // If updates available is still false at the end of the foreach loop
+    // then that means no releases have been made -- nothing to do.
+    var updatesAvailable = false;
+
     // Updates.xml
     let updates = [
         {"ApplicationName": "{AnyApplication}"},
-        {"ApplicationVersion": "1.0.0"}, // Separate from nightly/be versions
+        {"ApplicationVersion": "1.0.0"}, // Separate from nightly / canary versions
         {"Checksum": false} // As they are pulled straight from Github
     ];
 
@@ -105,16 +109,20 @@ async function execute() {
                 return;
             }
 
-            logger.info(`Building release information for ${name}.`);
             const scriptName = platform + "-" + target_source.ScriptName;
-
-            // Build 7zip file
             const version = release_data.release_id;
+            const targetMetadataPath = `${distDir}/${name}/${version}meta.7z`;
+
+            if (fs.existsSync(targetMetadataPath)) {
+                logger.debug(`Metadata information already exists for ${name} ${version}, skipping.`);
+                return;
+            }
+
+            logger.info(`Building release information for ${name} ${version}.`);
+            updatesAvailable = true;
 
             // Build directory structure
             mkdirIfNotExists(`${distDir}/${name}`);
-
-            logger.debug(`Copying files for ${name}`);
 
             // Copy license
             fs.copySync("license.txt", `${distDir}/${name}/license.txt`);
@@ -127,10 +135,8 @@ async function execute() {
             const sha = sha1("meta.7z");
 
             // Setup final structure
-            mkdirIfNotExists(`${distDir}/${name}`);
-            fs.moveSync("meta.7z", `${distDir}/${name}/${version}meta.7z`);
-
             logger.debug(`Creating target metadata for ${name}`);
+            fs.moveSync("meta.7z", targetMetadataPath);
 
             // Create metadata
             let target = [];
@@ -158,18 +164,21 @@ async function execute() {
         });
     });
 
-    const updatesXml = xml({"Updates": updates}, {indent: "  "});
+    if (updatesAvailable) {
+      const updatesXml = xml({"Updates": updates}, {indent: "  "});
 
-    // Save Updates.xml
-    fs.writeFile(`${distDir}/Updates.xml`, updatesXml, function (err) {
-        if (err) {
-            throw err;
-        }
-    });
+      // Save Updates.xml
+      fs.writeFile(`${distDir}/Updates.xml`, updatesXml, function (err) {
+          if (err) {
+              throw err;
+          }
+      });
+      logger.info('Wrote a new Updates.xml file -- updates are available.');
+    } else {
+      logger.info('No updates are available -- nothing to do.');
+    }
 }
 
-execute().then(function() {
-  logger.info(`Completed repository creation at ${distDir}.`);
-}).catch((err) => {
+execute().catch((err) => {
   logger.error(err);
 });
