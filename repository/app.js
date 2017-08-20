@@ -10,7 +10,7 @@ logger.exitOnError = false;
 logger.add(logger.transports.File, { filename: '/var/log/citra-qt-installer/citra-qt-installer-repository.log' });
 
 const tempDir = './temp';
-const distDir = './dist';
+const distDir = '/citra/nginx/repo';
 
 async function getReleases(repo) {
     const result = await req({
