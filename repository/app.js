@@ -73,9 +73,6 @@ let targets = [
 ];
 
 async function execute() {
-    // Verify there's a dist directory.
-    fs.ensureDirSync(distDir);
-
     // Clean up any temporary directories.
     fs.emptyDirSync(tempDir);
 
