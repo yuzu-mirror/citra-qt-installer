@@ -120,7 +120,7 @@ async function execute() {
             updatesAvailable = true;
 
             // Create the temporary working directory.
-            const workingDirectoryPath = `${tempDir}/${name}_tmp`;
+            const workingDirectoryPath = `${tempDir}/${name}`;
             fs.ensureDirSync(workingDirectoryPath);
 
             // Copy license
@@ -128,7 +128,7 @@ async function execute() {
             fs.copySync(`scripts/${scriptName}.qs`, `${workingDirectoryPath}/installscript.qs`);
 
             // Create 7zip archive
-            exec.sync(zip_bin, ["a", "../meta.7z"], {"cwd": workingDirectoryPath});
+            exec.sync(zip_bin, ["a", "meta.7z", name], {"cwd": tempDir});
 
             // Copy the metadata file into the target path.
             logger.debug(`Creating target metadata for ${name} at ${targetMetadataFilePath}`);
