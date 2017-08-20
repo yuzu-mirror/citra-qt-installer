@@ -9,11 +9,8 @@ const logger = require('winston');
 logger.exitOnError = false;
 logger.add(logger.transports.File, { filename: '/var/log/citra-qt-installer/citra-qt-installer-repository.log' });
 
-const distDir = "./dist";
-
-function mkdirIfNotExists(path) {
-    if (!fs.existsSync(path)) { fs.mkdirSync(path); }
-}
+const tempDir = './temp';
+const distDir = './dist';
 
 async function getReleases(repo) {
     const result = await req({
@@ -76,7 +73,11 @@ let targets = [
 ];
 
 async function execute() {
-    mkdirIfNotExists(distDir);
+    // Verify there's a dist directory.
+    fs.ensureDirSync(distDir);
+
+    // Clean up any temporary directories.
+    fs.emptyDirSync(tempDir);
 
     // Get Git information
     logger.debug("Getting release info...");
@@ -111,9 +112,9 @@ async function execute() {
 
             const scriptName = platform + "-" + target_source.ScriptName;
             const version = release_data.release_id;
-            const targetMetadataPath = `${distDir}/${name}/${version}meta.7z`;
 
-            if (fs.existsSync(targetMetadataPath)) {
+            const targetMetadataFilePath = `${distDir}/${name}/${version}meta.7z`;
+            if (fs.existsSync(targetMetadataFilePath)) {
                 logger.debug(`Metadata information already exists for ${name} ${version}, skipping.`);
                 return;
             }
@@ -121,32 +122,35 @@ async function execute() {
             logger.info(`Building release information for ${name} ${version}.`);
             updatesAvailable = true;
 
-            // Build directory structure
-            mkdirIfNotExists(`${distDir}/${name}`);
+            // Create the temporary working directory.
+            const workingDirectoryPath = `${tempDir}/${name}_tmp`;
+            fs.ensureDirSync(workingDirectoryPath);
 
             // Copy license
-            fs.copySync("license.txt", `${distDir}/${name}/license.txt`);
-            fs.copySync("scripts/" + scriptName + ".qs", `${distDir}/${name}/installscript.qs`);
+            fs.copySync("license.txt", `${workingDirectoryPath}/license.txt`);
+            fs.copySync(`scripts/${scriptName}.qs`, `${workingDirectoryPath}/installscript.qs`);
 
             // Create 7zip archive
-            fs.removeSync("meta.7z");
-            exec.sync(zip_bin, ["a", "../meta.7z", name], {"cwd": distDir});
-            fs.removeSync(`${distDir}/${name}`);
-            const sha = sha1("meta.7z");
+            exec.sync(zip_bin, ["a", "../meta.7z"], {"cwd": workingDirectoryPath});
 
-            // Setup final structure
-            logger.debug(`Creating target metadata for ${name}`);
-            fs.moveSync("meta.7z", targetMetadataPath);
+            // Copy the metadata file into the target path.
+            logger.debug(`Creating target metadata for ${name} at ${targetMetadataFilePath}`);
+            fs.moveSync(`${tempDir}/meta.7z`, targetMetadataFilePath);
 
-            // Create metadata
+            // Create metadata for the Update.xml
+            var metaHash = sha1(targetMetadataFilePath);
+
+            // Cleanup temporary working directory.
+            fs.removeSync(workingDirectoryPath);
+
             let target = [];
             target.push({"Name": name});
             target.push({"DisplayName": target_source.DisplayName.replace("%platform%", platform)});
             target.push({"Version": version});
             target.push({"DownloadableArchives":  release_data.name});
 
-            // Because we cannot compute the uncompressed size ourselves, just give a generous estimate (to make
-            //  sure they have enough disk space).
+            // Because we cannot compute the uncompressed size ourselves, just give a generous estimate
+            // (to make sure they have enough disk space).
             // OS flag is useless - i.e the installer stubs it :P
             target.push({"UpdateFile": [{_attr: {UncompressedSize: release_data.size * 2,
                 CompressedSize: release_data.size, OS: "Any"}}]});
@@ -158,7 +162,7 @@ async function execute() {
             target.push({"Default": target_source.Default});
             target.push({"Licenses": target_source.Licenses});
             target.push({"Script": "installscript.qs"});
-            target.push({"SHA": sha});
+            target.push({"SHA": metaHash});
 
             updates.push({"PackageUpdate": target});
         });
@@ -168,11 +172,7 @@ async function execute() {
       const updatesXml = xml({"Updates": updates}, {indent: "  "});
 
       // Save Updates.xml
-      fs.writeFile(`${distDir}/Updates.xml`, updatesXml, function (err) {
-          if (err) {
-              throw err;
-          }
-      });
+      fs.writeFileSync(`${distDir}/Updates.xml`, updatesXml);
       logger.info('Wrote a new Updates.xml file -- updates are available.');
     } else {
       logger.info('No updates are available -- nothing to do.');

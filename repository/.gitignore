@@ -1,6 +1,9 @@
 # Output directory
 dist/
 
+# Temporary directory
+temp/
+
 # Logs
 logs
 *.log
@@ -59,4 +62,3 @@ typings/
 
 # dotenv environment variables file
 .env
-
