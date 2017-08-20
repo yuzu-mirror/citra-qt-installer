@@ -128,7 +128,7 @@ async function execute() {
 
             // Setup final structure
             mkdirIfNotExists(`${distDir}/${name}`);
-            fs.moveSync("meta.7z", `${distDir}/${name}/${version}/meta.7z`);
+            fs.moveSync("meta.7z", `${distDir}/${name}/${version}meta.7z`);
 
             logger.debug(`Creating target metadata for ${name}`);
 
