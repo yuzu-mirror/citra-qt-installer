@@ -12,6 +12,7 @@
     "request": "^2.81.0",
     "request-promise": "^4.2.1",
     "sha1-file": "^1.0.0",
+    "winston": "^2.3.1",
     "xml": "^1.0.1"
   },
   "preferGlobal": false,

@@ -3,15 +3,16 @@ const fs   = require('fs-extra');
 const exec = require('execa');
 const sha1 = require('sha1-file');
 const req  = require('request-promise');
-
 const zip_bin = require('7zip-bin').path7za;
 
-const destinationDirectory = "";
+const logger = require('winston');
+logger.exitOnError = false;
+logger.add(logger.transports.File, { filename: './qt-installer-repository.log' });
+
+const distDir = "./dist";
 
 function mkdirIfNotExists(path) {
-    if (!fs.existsSync(path)){
-        fs.mkdirSync(path);
-    }
+    if (!fs.existsSync(path)) { fs.mkdirSync(path); }
 }
 
 async function getReleases(repo) {
@@ -36,7 +37,7 @@ function getTopResultFor(jsonData, platform) {
                     "published_at": release.published_at.substr(0, 10),
                     "name": asset.name,
                     "size": asset.size,
-                    "hash": release.target_commitish
+                    "hash": release.tag_name
                 }
             }
         }
@@ -45,8 +46,8 @@ function getTopResultFor(jsonData, platform) {
     return {"notFound": true};
 }
 
-fs.removeSync("build");
-mkdirIfNotExists("build");
+fs.removeSync(distDir);
+mkdirIfNotExists(distDir);
 
 // The Qt Installer Framework is a pain to build or download.
 // Because all we need are a few 7-zipped + xml files, we might as well generate them for ourselves.
@@ -64,12 +65,12 @@ let targets = [
         ],
     },
     {
-        "Name":        "org.citra.bleeding.%platform%",
-        "DisplayName": "Citra Bleeding Edge",
+        "Name":        "org.citra.canary.%platform%",
+        "DisplayName": "Citra Canary",
         "Description": "An in-development version of Citra that uses changes that are relatively untested.\n" +
                        "(%platform%, commit: %commithash%, release date: %releasedate%)",
-        "Repo":        "citra-emu/citra-bleeding-edge",
-        "ScriptName":  "bleeding",
+        "Repo":        "citra-emu/citra-canary",
+        "ScriptName":  "canary",
         "Default":     "script",
         "Licenses": [
             {"License": [{ _attr: { file: 'license.txt', name: "GNU General Public License v2.0" }}]}
@@ -79,13 +80,13 @@ let targets = [
 
 async function execute() {
     // Get Git information
-    console.log("Getting release info...");
+    logger.debug("Getting release info...");
     for (result_key in targets) {
         const target = targets[result_key];
         target.Repo = await getReleases(target.Repo);
     }
 
-    console.log("Building metadata...");
+    logger.debug("Building metadata...");
     // Updates.xml
     let updates = [
         {"ApplicationName": "{AnyApplication}"},
@@ -100,33 +101,36 @@ async function execute() {
             const name = target_source.Name.replace("%platform%", platform);
 
             if (release_data.notFound === true) {
-                console.warn("Unable to find a release for " + name);
+                logger.error(`Release information not found for ${name}!`);
                 return;
             }
 
+            logger.info(`Building release information for ${name}.`);
             const scriptName = platform + "-" + target_source.ScriptName;
 
             // Build 7zip file
             const version = release_data.release_id;
 
-            console.log("Building \"" + name + "\"...");
-
             // Build directory structure
-            mkdirIfNotExists("build/" + name);
+            mkdirIfNotExists(`${distDir}/${name}`);
+
+            logger.debug(`Copying files for ${name}`);
 
             // Copy license
-            fs.copySync("license.txt", "build/" + name + "/license.txt");
-            fs.copySync("scripts/" + scriptName + ".qs", "build/" + name + "/installscript.qs");
+            fs.copySync("license.txt", `${distDir}/${name}/license.txt`);
+            fs.copySync("scripts/" + scriptName + ".qs", `${distDir}/${name}/installscript.qs`);
 
             // Create 7zip archive
             fs.removeSync("meta.7z");
-            exec.sync(zip_bin, ["a", "../meta.7z", name], {"cwd": "build"});
-            fs.removeSync("build/" + name);
+            exec.sync(zip_bin, ["a", "../meta.7z", name], {"cwd": distDir});
+            fs.removeSync(`${distDir}/${name}`);
             const sha = sha1("meta.7z");
 
             // Setup final structure
-            mkdirIfNotExists("build/" + name);
-            fs.moveSync("meta.7z", "build/" + name + "/" + version + "meta.7z");
+            mkdirIfNotExists(`${distDir}/${name}`);
+            fs.moveSync("meta.7z", `${distDir}/${name}/${version}/meta.7z`);
+
+            logger.debug(`Creating target metadata for ${name}`);
 
             // Create metadata
             let target = [];
@@ -143,7 +147,7 @@ async function execute() {
 
             target.push({"ReleaseDate": release_data.published_at});
             target.push({"Description": target_source.Description.replace("%platform%", platform)
-                .replace("%commithash%", release_data.hash.substr(0,7))
+                .replace("%commithash%", release_data.hash)
                 .replace("%releasedate%", release_data.published_at)});
             target.push({"Default": target_source.Default});
             target.push({"Licenses": target_source.Licenses});
@@ -157,15 +161,15 @@ async function execute() {
     const updatesXml = xml({"Updates": updates}, {indent: "  "});
 
     // Save Updates.xml
-    fs.writeFile("build/Updates.xml", updatesXml, function (err) {
+    fs.writeFile(`${distDir}/Updates.xml`, updatesXml, function (err) {
         if (err) {
             throw err;
         }
     });
 }
 
-execute()
-    .then(() => {})
-    .catch((err) => {
-        console.error(err);
-    });
+execute().then(function() {
+  logger.info(`Completed repository creation at ${distDir}.`);
+}).catch((err) => {
+  logger.error(err);
+});
