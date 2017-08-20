@@ -172,7 +172,7 @@ async function execute() {
       fs.writeFileSync(`${distDir}/Updates.xml`, updatesXml);
       logger.info('Wrote a new Updates.xml file -- updates are available.');
     } else {
-      logger.info('No updates are available -- nothing to do.');
+      logger.info('No Citra binary release updates are available for the Updates.xml -- nothing to do.');
     }
 }
 
