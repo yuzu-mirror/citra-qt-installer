@@ -112,7 +112,7 @@ async function execute() {
 
             const targetMetadataFilePath = `${distDir}/${name}/${version}meta.7z`;
             if (fs.existsSync(targetMetadataFilePath)) {
-                logger.info(`Metadata information already exists for ${name} ${version}, skipping.`);
+                logger.debug(`Metadata information already exists for ${name} ${version}, skipping.`);
             } else {
                 logger.info(`Building release information for ${name} ${version}.`);
                 updatesAvailable = true;
