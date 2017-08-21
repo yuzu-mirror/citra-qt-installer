@@ -113,32 +113,31 @@ async function execute() {
             const targetMetadataFilePath = `${distDir}/${name}/${version}meta.7z`;
             if (fs.existsSync(targetMetadataFilePath)) {
                 logger.info(`Metadata information already exists for ${name} ${version}, skipping.`);
-                return;
+            } else {
+                logger.info(`Building release information for ${name} ${version}.`);
+                updatesAvailable = true;
+
+                // Create the temporary working directory.
+                const workingDirectoryPath = `${tempDir}/${name}`;
+                fs.ensureDirSync(workingDirectoryPath);
+
+                // Copy license
+                fs.copySync("license.txt", `${workingDirectoryPath}/license.txt`);
+                fs.copySync(`scripts/${scriptName}.qs`, `${workingDirectoryPath}/installscript.qs`);
+
+                // Create 7zip archive
+                exec.sync(zip_bin, ["a", "meta.7z", name], {"cwd": tempDir});
+
+                // Copy the metadata file into the target path.
+                logger.debug(`Creating target metadata for ${name} at ${targetMetadataFilePath}`);
+                fs.moveSync(`${tempDir}/meta.7z`, targetMetadataFilePath);
+
+                // Cleanup temporary working directory.
+                fs.removeSync(workingDirectoryPath);
             }
-
-            logger.info(`Building release information for ${name} ${version}.`);
-            updatesAvailable = true;
-
-            // Create the temporary working directory.
-            const workingDirectoryPath = `${tempDir}/${name}`;
-            fs.ensureDirSync(workingDirectoryPath);
-
-            // Copy license
-            fs.copySync("license.txt", `${workingDirectoryPath}/license.txt`);
-            fs.copySync(`scripts/${scriptName}.qs`, `${workingDirectoryPath}/installscript.qs`);
-
-            // Create 7zip archive
-            exec.sync(zip_bin, ["a", "meta.7z", name], {"cwd": tempDir});
-
-            // Copy the metadata file into the target path.
-            logger.debug(`Creating target metadata for ${name} at ${targetMetadataFilePath}`);
-            fs.moveSync(`${tempDir}/meta.7z`, targetMetadataFilePath);
 
             // Create metadata for the Update.xml
             var metaHash = sha1(targetMetadataFilePath);
-
-            // Cleanup temporary working directory.
-            fs.removeSync(workingDirectoryPath);
 
             let target = [];
             target.push({"Name": name});
