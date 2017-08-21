@@ -12,6 +12,6 @@ Component.prototype.createOperations = function()
 {
     component.createOperations();
 
-    component.addOperation("CreateShortcut", "@TargetDir@/bleeding/citra-qt.exe", "@StartMenuDir@/Citra-Bleeding.lnk",
-        "workingDirectory=@TargetDir@/bleeding");
+    component.addOperation("CreateShortcut", "@TargetDir@/canary/citra-qt.exe", "@StartMenuDir@/Citra Canary.lnk",
+        "workingDirectory=@TargetDir@/canary");
 }
