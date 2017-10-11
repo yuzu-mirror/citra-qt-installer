@@ -5,6 +5,14 @@
   "homepage": "https://citra-emu.org/",
   "author": "Selby <jselby@jselby.net>",
   "main": "app.js",
+  "devDependencies": {
+    "eslint": "^4.8.0",
+    "eslint-config-standard": "^10.2.1",
+    "eslint-plugin-import": "^2.7.0",
+    "eslint-plugin-node": "^5.2.0",
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-standard": "^3.0.1"
+  },
   "dependencies": {
     "7zip-bin": "^2.1.0",
     "execa": "^0.7.0",
