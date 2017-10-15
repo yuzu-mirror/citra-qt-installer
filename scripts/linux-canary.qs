@@ -26,4 +26,6 @@ Component.prototype.createOperations = function()
     "Categories=Game;Emulator;Qt;\n" +
     "MimeType=application/x-ctr-3dsx;application/x-ctr-cci;application/x-ctr-cia;application/x-ctr-cxi;\n" +
     "Keywords=3DS;Nintendo;\n");
+
+    component.addOperation("InstallIcons", "@TargetDir@/canary/dist");
 }
