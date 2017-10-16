@@ -96,7 +96,7 @@ async function execute () {
     {'Checksum': false} // As they are pulled straight from Github
   ];
 
-  ['msvc', 'osx', 'linux'].forEach((platform) => {
+  ['msvc', 'mingw', 'osx', 'linux'].forEach((platform) => {
     targets.forEach((targetSource) => {
       // Get Git metadata
       const releaseData = getTopResultFor(targetSource.Repo, platform);
