@@ -2,6 +2,7 @@ function Component() {
     if (systemInfo.kernelType === "winnt") {
         component.setValue("Virtual", "true"); // Hidden by default
         component.setValue("Default", "false"); // bleeding
+        component.setValue("Enabled", "false");
     } else {
         component.setValue("Virtual", "true");
         component.setValue("Enabled", "false");

@@ -1,7 +1,8 @@
 function Component() {
     if (systemInfo.kernelType === "winnt") {
-        component.setValue("Virtual", "true");
+        component.setValue("Virtual", "true"); // Hidden by default
         component.setValue("Default", "false"); // msvc
+        component.setValue("Enabled", "false");
     } else {
         component.setValue("Virtual", "true");
         component.setValue("Enabled", "false");
