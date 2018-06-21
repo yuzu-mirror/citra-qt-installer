@@ -10,7 +10,7 @@ logger.exitOnError = false;
 logger.add(logger.transports.File, { filename: '/var/log/citra-qt-installer/citra-qt-installer-repository.log' });
 
 const tempDir = './temp';
-const distDir = '/citra/nginx/repo';
+const distDir = '/citra/nginx/citra_repo';
 
 async function getReleases (repo) {
   const result = await req({
@@ -96,7 +96,8 @@ async function execute () {
     {'Checksum': false} // As they are pulled straight from Github
   ];
 
-  ['msvc', 'mingw', 'osx', 'linux'].forEach((platform) => {
+  // 6/19/18 (Flame Sage) - MSVC builds have been disabled, removed it from the below array 'msvc'
+  ['mingw', 'osx', 'linux'].forEach((platform) => {
     targets.forEach((targetSource) => {
       // Get Git metadata
       const releaseData = getTopResultFor(targetSource.Repo, platform);
