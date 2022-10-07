@@ -57,7 +57,6 @@ function getTopResultFor(jsonData, platform) {
   return { notFound: true };
 }
 
-const zipBin = await check7z();
 // The Qt Installer Framework is a pain to build or download.
 // Because all we need are a few 7-zipped + xml files, we might as well generate them for ourselves.
 const targets = [
@@ -100,6 +99,7 @@ const targets = [
 ];
 
 async function execute() {
+  const zipBin = await check7z();
   // Clean up any temporary directories.
   try {
     await Deno.remove(tempDir, { recursive: true });
@@ -236,6 +236,8 @@ async function execute() {
       "No Citra binary release updates are available for the Updates.xml -- nothing to do."
     );
   }
+
+  await Deno.remove(tempDir, { recursive: true });
 }
 
 execute().catch((err) => {
