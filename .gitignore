@@ -62,3 +62,5 @@ typings/
 # bundled JS
 *.bundle.js
 *.min.js
+
+/temp
