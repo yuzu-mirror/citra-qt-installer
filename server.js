@@ -143,7 +143,7 @@ async function execute() {
     const targetMetadataFilePath = `${distDir}/${name}/${version}meta.7z`;
     if (await checkExists(targetMetadataFilePath)) {
       console.debug(
-        `Metadata information already exists for ${name} ${version}, skipping.`
+        `Metadata information already exists for ${name} ${version}, skipping.`,
       );
     } else {
       console.info(`Building release information for ${name} ${version}.`);
@@ -157,7 +157,7 @@ async function execute() {
       await Deno.copyFile("license.txt", `${workingDirectoryPath}/license.txt`);
       await Deno.copyFile(
         `scripts/${scriptName}.qs`,
-        `${workingDirectoryPath}/installscript.qs`
+        `${workingDirectoryPath}/installscript.qs`,
       );
 
       // Create 7zip archive
@@ -169,13 +169,13 @@ async function execute() {
       const status = (await proc.status()).code;
       if (status !== 0) {
         throw new Error(
-          `Error when creating ${name} archive. Exited with ${status}.`
+          `Error when creating ${name} archive. Exited with ${status}.`,
         );
       }
 
       // Copy the metadata file into the target path.
       console.debug(
-        `Creating target metadata for ${name} at ${targetMetadataFilePath}`
+        `Creating target metadata for ${name} at ${targetMetadataFilePath}`,
       );
       await Deno.mkdir(`${distDir}/${name}`, { recursive: true });
       await Deno.rename(`${tempDir}/${fileName}`, `${targetMetadataFilePath}`);
@@ -187,7 +187,7 @@ async function execute() {
     // Create metadata for the Update.xml
     const metaHash = await crypto.subtle.digest(
       "SHA-1",
-      await Deno.readFile(targetMetadataFilePath)
+      await Deno.readFile(targetMetadataFilePath),
     );
 
     const target = {
@@ -199,7 +199,7 @@ async function execute() {
       // (to make sure they have enough disk space).
       // OS flag is useless - i.e the installer stubs it :P
       UpdateFile: {
-        "@UncompressedSize": releaseData.size * 2,
+        "@UncompressedSize": Math.ceil(releaseData.size * 4.85),
         "@CompressedSize": releaseData.size,
         "@OS": "Any",
       },
@@ -220,9 +220,9 @@ async function execute() {
   await Promise.all(
     ["mingw", "osx", "linux"].map((platform) => {
       return Promise.all(
-        targets.map((targetSource) => generate(targetSource, platform))
+        targets.map((targetSource) => generate(targetSource, platform)),
       );
-    })
+    }),
   );
 
   if (updatesAvailable) {
@@ -233,7 +233,7 @@ async function execute() {
     console.info("Wrote a new Updates.xml file -- updates available.");
   } else {
     console.info(
-      "No Citra binary release updates are available for the Updates.xml -- nothing to do."
+      "No Citra binary release updates are available for the Updates.xml -- nothing to do.",
     );
   }
 
