@@ -1,10 +1,42 @@
 import * as xml from "https://deno.land/x/xml@2.0.4/mod.ts";
 import { which } from "https://deno.land/x/which@0.2.1/mod.ts";
 
+interface ITargetLicense {
+  License: { [index: string]: string };
+}
+
+interface ITargetSource {
+  Name: string;
+  DisplayName: string;
+  Description: string;
+  Repo: string;
+  ScriptName: string;
+  Default: string;
+  Licenses: ITargetLicense[];
+}
+
+interface IOutputTarget {
+  Name: string;
+  DisplayName: string;
+  Version: string;
+  DownloadableArchives: string;
+  UpdateFile: {
+    "@UncompressedSize": number;
+    "@CompressedSize": number;
+    "@OS": string;
+  };
+  ReleaseDate: string;
+  Description: string;
+  Default: string;
+  Licenses: ITargetLicense[];
+  Script: string;
+  SHA: string;
+}
+
 const tempDir = "./temp";
 const distDir = "/citra/nginx/citra_repo";
 
-async function getReleases(repo) {
+async function getReleases(repo: string) {
   const result = await fetch(`https://api.github.com/repos/${repo}/releases`, {
     headers: {
       Accept: "application/vnd.github.v3+json",
@@ -14,7 +46,7 @@ async function getReleases(repo) {
   return result.json();
 }
 
-async function checkExists(directory) {
+async function checkExists(directory: string) {
   try {
     await Deno.stat(directory);
     return true;
@@ -31,13 +63,13 @@ async function check7z() {
   throw new Error("7-zip is not available!");
 }
 
-function bufferToHex(buffer) {
+function bufferToHex(buffer: ArrayBuffer) {
   return [...new Uint8Array(buffer)]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 
-function getTopResultFor(jsonData, platform) {
+function getTopResultFor(jsonData: any, platform: string) {
   for (const releaseKey in jsonData) {
     const release = jsonData[releaseKey];
     for (const assetKey in release.assets) {
@@ -59,7 +91,7 @@ function getTopResultFor(jsonData, platform) {
 
 // The Qt Installer Framework is a pain to build or download.
 // Because all we need are a few 7-zipped + xml files, we might as well generate them for ourselves.
-const targets = [
+const targets: ITargetSource[] = [
   {
     Name: "org.citra.nightly.%platform%",
     DisplayName: "Citra Nightly",
@@ -124,13 +156,13 @@ async function execute() {
     ApplicationName: "{AnyApplication}",
     ApplicationVersion: "1.0.0", // Separate from nightly / canary versions
     Checksum: false, // As they are pulled straight from Github
-    PackageUpdate: [],
+    PackageUpdate: new Array<IOutputTarget>(),
   };
 
-  async function generate(targetSource, platform) {
+  async function generate(targetSource: ITargetSource, platform: string) {
     // Get Git metadata
     const releaseData = getTopResultFor(targetSource.Repo, platform);
-    const name = targetSource.Name.replace("%platform%", platform);
+    const name: string = targetSource.Name.replace("%platform%", platform);
 
     if (releaseData.notFound === true) {
       console.error(`Release information not found for ${name}!`);
@@ -143,7 +175,7 @@ async function execute() {
     const targetMetadataFilePath = `${distDir}/${name}/${version}meta.7z`;
     if (await checkExists(targetMetadataFilePath)) {
       console.debug(
-        `Metadata information already exists for ${name} ${version}, skipping.`,
+        `Metadata information already exists for ${name} ${version}, skipping.`
       );
     } else {
       console.info(`Building release information for ${name} ${version}.`);
@@ -157,7 +189,7 @@ async function execute() {
       await Deno.copyFile("license.txt", `${workingDirectoryPath}/license.txt`);
       await Deno.copyFile(
         `scripts/${scriptName}.qs`,
-        `${workingDirectoryPath}/installscript.qs`,
+        `${workingDirectoryPath}/installscript.qs`
       );
 
       // Create 7zip archive
@@ -169,13 +201,13 @@ async function execute() {
       const status = (await proc.status()).code;
       if (status !== 0) {
         throw new Error(
-          `Error when creating ${name} archive. Exited with ${status}.`,
+          `Error when creating ${name} archive. Exited with ${status}.`
         );
       }
 
       // Copy the metadata file into the target path.
       console.debug(
-        `Creating target metadata for ${name} at ${targetMetadataFilePath}`,
+        `Creating target metadata for ${name} at ${targetMetadataFilePath}`
       );
       await Deno.mkdir(`${distDir}/${name}`, { recursive: true });
       await Deno.rename(`${tempDir}/${fileName}`, `${targetMetadataFilePath}`);
@@ -187,7 +219,7 @@ async function execute() {
     // Create metadata for the Update.xml
     const metaHash = await crypto.subtle.digest(
       "SHA-1",
-      await Deno.readFile(targetMetadataFilePath),
+      await Deno.readFile(targetMetadataFilePath)
     );
 
     const target = {
@@ -220,9 +252,9 @@ async function execute() {
   await Promise.all(
     ["mingw", "osx", "linux"].map((platform) => {
       return Promise.all(
-        targets.map((targetSource) => generate(targetSource, platform)),
+        targets.map((targetSource) => generate(targetSource, platform))
       );
-    }),
+    })
   );
 
   if (updatesAvailable) {
@@ -233,7 +265,7 @@ async function execute() {
     console.info("Wrote a new Updates.xml file -- updates available.");
   } else {
     console.info(
-      "No Citra binary release updates are available for the Updates.xml -- nothing to do.",
+      "No Citra binary release updates are available for the Updates.xml -- nothing to do."
     );
   }
 

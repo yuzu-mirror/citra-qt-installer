@@ -1,5 +1,5 @@
 {
     "tasks": {
-        "bundle": "deno bundle server.js -- server.bundle.js"
+        "bundle": "deno bundle server.ts -- server.bundle.js"
     }
 }
